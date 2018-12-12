@@ -1,72 +1,30 @@
-#include <stdio.h>
-#include <omp.h> 
+#include<omp.h>
+#include<stdio.h>
+#include<limits.h>
 #include<stdlib.h>
-#define MINUS_INFINITY -9999 
-#define MAXIMUM_VALUE 65535
-
-void main() 
-{ 
-	int *array, i, Noofelements, cur_max, current_value; 
-	omp_lock_t MAXLOCK; 
-	printf("Enter the number of elements\n"); 
-	scanf("%d", &Noofelements);
-	if (Noofelements<= 0)
-	{
-		printf("The array elements cannot be stored\n"); 
-		exit(1); 
+void main() {
+	omp_lock_t lock;
+	int max_p = INT_MIN;
+	int max_s = INT_MIN;
+	int i,a[100];
+	for(i=0;i<100;i++) {
+	    a[i] = rand()%1000;
 	}
-
-	array = (int *) malloc(sizeof(int) * Noofelements);
-
-	srand(MAXIMUM_VALUE); 
-	for (i = 0; i<Noofelements; i++) 
-		array[i] = rand(); 
-	if (Noofelements == 1)
-	{
-		printf("The Largest Element In The Array Is %d", array[0]); exit(1);
+	printf("Check max through parallel\n");
+	omp_init_lock(&lock);
+	#pragma omp parallel for num_threads(8)
+	for(i=0;i<100;i++) {
+	    if(a[i]>max_p) {
+	        omp_set_lock(&lock);
+	        max_p = a[i];
+	        omp_unset_lock(&lock);
+	    }
 	}
-	printf("The locking is going to start\n"); 
-	omp_set_num_threads(8); 
-	omp_init_lock(&MAXLOCK); 
-	cur_max = MINUS_INFINITY; 
-	printf("the lock s initialized\n"); 
-	#pragma omp parallel for 
-	for (i = 0; i<Noofelements; i = i + 1)
-	{
-	   if (array[i] >cur_max) 
-	   { 
-		omp_set_lock(&MAXLOCK); 
-		if (array[i] >cur_max) 
-			cur_max = array[i]; 
-		omp_unset_lock(&MAXLOCK); 
-	   } 
+	omp_destroy_lock(&lock);
+	printf("Check max through serial\n");
+	for(i=0;i<100;i++) {
+	    if(a[i]>max_s)
+	        max_s = a[i];
 	}
-
-	omp_destroy_lock(&MAXLOCK);
-
-	current_value = array[0]; 
-	for (i = 1; i<Noofelements; i++) 
-		if (array[i] >current_value) 
-			current_value = array[i]; 
-	printf("The Array Elements Are \n"); 
-	for (i = 0; i<Noofelements; i++) 
-		printf("\t%d", array[i]);
-
-	if (current_value == cur_max)
-		printf("\nThe Max Value Is Same For Serial And Using Parallel OpenMP Directive\n"); 
-	else {
-		printf("\nThe Max Value Is Not Same In Serial And Using Parallel OpenMP Directive\n"); 
-		exit(1); 
-	}
-
-	free(array); 
-	printf("\nThe Largest Number Of The Array Is %d\n", cur_max); 
+	printf("Parallel max %d serial max %d\n",max_p,max_s);
 }
-
-
-
-
-
-
-
-
